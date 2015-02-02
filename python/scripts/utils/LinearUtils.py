@@ -10,8 +10,8 @@ def scatterplot(x, y):
 
 
 def decay(x):
-    val = .9 * 2**-abs(x)
-    return max(val, 0.00005)
+    """define a decay function for the learning rate (alpha)"""
+    return -1
 
 
 def linear_regression(x, y):
@@ -29,12 +29,21 @@ def linear_regression_matrix_solve(x, y):
 
 
 def linear_regression_stoc_grad_desc(x, y):
-    xm = x
-    ym = y
+    xm = None
+    ym = None
     if type(x) == pd.core.frame.DataFrame:
-        xm = np.matrix(xm.values)
+        xm = np.matrix(x.values)
         ym = np.matrix(y.values)
-    xm = np.column_stack((np.ones([x.shape[0]]), x))
+        xm = np.column_stack((np.ones([xm.shape[0]]), xm))
+    else:
+        xm = np.column_stack((np.ones([x.shape[0]]), x))
+        ym = y
+
+    m = np.mean(xm, 0)
+    sd = np.std(xm, 0)
+    m[0, 0] = 0
+    sd[0, 0] = 1
+    xm = (xm - m)/sd
 
     dims = xm.shape
     dims_len = len(dims)
@@ -42,33 +51,47 @@ def linear_regression_stoc_grad_desc(x, y):
     # init some small value
     theta = np.array(0.2 * random.random(features))
     # learning rate
-    alpha = 0.0000006
+    alpha = 0.001
+    precision = 0.0001
     count = 0
     try:
+        prev_mse = 0
+        curr_mse = 0
         while True:
             # pre-pend 1, which is bias or intercept
             # stochastic gradient descent
             for idx in range(dims[0]):
+                curr_mse = 0
                 count += 1
                 error = h(xm[idx, :], theta) - ym[idx, 0]
-                delta = xm[idx, :] * error
+                curr_mse += error[0,0] ** 2
+                delta = np.array(xm[idx, :]).flatten() * error[0, 0]
                 # _theta = theta.copy()
                 theta[:] = theta - alpha * delta
 
-                if count > 50000: # stopping condition
+                if count > 500000: # stopping condition
+                    print('stop iterations')
                     raise Exception
-                if idx % 100 == 0:
-                    print('d ' + str(np.dot(theta - theta, theta - theta)))
-                    print(str(theta))
-                    print(str(theta))
+            if abs(prev_mse - curr_mse) < precision: # stopping condition
+                raise Exception
+            prev_mse = curr_mse
 
     except Exception as e:
         print(e)
 
-    print('T: '+ str(theta))
-    slope = theta[1]
-    intercept = theta[0]
-    return (slope, intercept)
+    sd = np.array(sd).flatten()
+    m = np.array(m).flatten()
+    xhat = np.ones([1, xm.shape[1]])
+    xnew = xhat * sd + m + .00001
+    xnew = np.ones([2, 2])
+    for i in range(2):
+        xnew[i, 1:] = m[1:] + (sd[1:]/4) * i
+    xh = (xnew - m)/sd
+    thetanew = np.linalg.inv(xnew.dot(xnew)).dot(xnew).dot(xh).dot(theta)
+    slope = thetanew[1]
+    intercept = thetanew[0]
+
+    return intercept, slope
 
 
 def linear_regression_batch_grad_desc(x, y):
@@ -107,7 +130,7 @@ def linear_regression_batch_grad_desc(x, y):
             diffm = (tmp_theta - theta)
             diff = diffm * diffm.getT()
             theta = tmp_theta
-            if count > 50000: # stopping condition
+            if count > 500000: # stopping condition
                 raise Exception
 
     except:
@@ -124,33 +147,6 @@ def h(theta, x):
     return np.dot(theta, x)
 
 
-def xxx():
-    x = np.array([[1., 200.],
-                  [1., 300.],
-                  [1., 400.]])
-    m = np.mean(x[:, 1])
-    sd = np.std(x[:, 1])
-    print(str(m))
-    print(str(sd))
-    x[:, 1] = (x[:, 1] - m)/sd
-    y = np.array([[5.08],
-                  [6.9],
-                  [9.1]])
-    b = np.array([2.1, -2.1])
-
-    eps = 0.03 # step size
-    precision = 0.00001
-    c = 0
-    while c < 1500: # abs(x_new - x_old) > precision:
-        idx = c % 3
-        # b_old = b_new
-        error = np.dot(x[idx, :], b) - y[idx, 0]
-        delta = x[idx, :] * error
-        b[:] = b - eps * delta
-        if c % 100 == 0:
-            print(str(b))
-        c += 1
-    print(str(b))
 
 
 

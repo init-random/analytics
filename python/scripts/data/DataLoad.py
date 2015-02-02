@@ -34,7 +34,7 @@ def diabetes_data_2d():
 
 
 def housing_data():
-    root = os.path.dirname(os.path.realpath(__file__))
+    root = os.getcwd() + '/scripts/data'
     path = root + '/raw/housing/x.dat'
     x = read_csv(path, sep=' ', skipinitialspace=True, header=None, names=['living_area', 'bedrooms'])
     path = root + '/raw/housing/y.dat'
